@@ -51,11 +51,13 @@ into `scripts/update-images.sh` (see **Update images** below) — that is the on
 changes a running deployment.
 
 <details>
-<summary>Manual / offline build (not the normal path)</summary>
+<summary>Manual build (not the normal path)</summary>
 
-**web** (from `../hashbin-web`):
+**web** (from `../hashbin-web`) — same recipe CI uses (compiles `src/`; no prebuilt `dist/` needed):
 ```bash
-docker build -t harbor.tools.nyx.kb.dk/blekinge/hashbin-web:<tag> ../hashbin-web
+DOCKER_BUILDKIT=1 docker build --target final \
+  -f ../hashbin-web/Dockerfile.ci \
+  -t harbor.tools.nyx.kb.dk/blekinge/hashbin-web:<tag> ../hashbin-web
 docker push harbor.tools.nyx.kb.dk/blekinge/hashbin-web:<tag>
 ```
 
