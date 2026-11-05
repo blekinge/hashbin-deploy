@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: migrate
-          image: hashbin-api
+          image: hashbin-backend
           imagePullPolicy: Always
           env:
             - name: QUARKUS_PROFILE
