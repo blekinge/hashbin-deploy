@@ -144,10 +144,9 @@ kubectl create secret generic simply-credentials-hashbin -n hashbin \
 git commit -am "rotate simply credentials" && git push
 ```
 
-> **Staging first:** `base/issuer.yaml` uses the Let's Encrypt **staging** server. Once
-> `hashbin-tls` issues cleanly, switch `server:` to `https://acme-v02.api.letsencrypt.org/directory`,
-> re-seal nothing (just commit + ArgoCD sync), then `kubectl -n hashbin delete certificate hashbin-tls`
-> to reissue a publicly-trusted cert.
+> **ACME server:** `base/issuer.yaml` points at the **production** Let's Encrypt server.
+> (Staging is used only to re-test the DNS-01/Simply path without touching prod limits.)
+> To reissue after switching servers, force it: `kubectl -n hashbin delete certificate hashbin-tls`.
 
 The **DB** credentials are not yours to manage here — CloudNativePG auto-creates the
 `hashbin-db-app` Secret (`username`/`password`), which the api Deployment consumes.

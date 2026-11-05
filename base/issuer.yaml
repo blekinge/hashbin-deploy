@@ -12,10 +12,10 @@ metadata:
 spec:
   acme:
     email: asger@askov.net
-    # STAGING for the first issuance (safe rate limits). Once a cert issues cleanly,
-    # switch to https://acme-v02.api.letsencrypt.org/directory and reissue for a
-    # publicly-trusted cert (staging certs are not trusted by browsers).
-    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    # PRODUCTION Let's Encrypt. (Staging was used to validate the DNS-01/Simply path first;
+    # flip to acme-staging-v02 again only if you want to re-test without touching prod limits.)
+    # After changing this, force a reissue of any existing cert:  kubectl -n hashbin delete certificate hashbin-tls
+    server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-simply-hashbin-private-key
     solvers:
