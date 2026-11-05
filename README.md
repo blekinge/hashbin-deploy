@@ -48,7 +48,7 @@ docker push ghcr.io/blekinge/hashbin-web:1.0.0
 set in its `application.properties`, so the build is just:
 ```bash
 cd ../hashbin-quarkus
-export JAVA_HOME=~/.sdkman/candidates/java/21.0.9-tem   # JDK 21 required
+export JAVA_HOME=<a JDK 21>   # JDK 21 required
 mvn -P '!web' -Dnative -DskipTests \
     -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true \
     -Dquarkus.container-image.tag=1.0.0 package
