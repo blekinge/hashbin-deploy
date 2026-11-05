@@ -15,6 +15,9 @@ spec:
       labels:
         app: hashbin-api
     spec:
+      # Harbor is a private registry — see README "2. Secrets" to create this Secret.
+      imagePullSecrets:
+        - name: harbor-cred
       securityContext:
         runAsNonRoot: true
         seccompProfile:

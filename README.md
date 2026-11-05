@@ -16,7 +16,8 @@ base/
   api-deployment.yaml api-service.yaml hpa.yaml pdb.yaml
   web-deployment.yaml web-service.yaml
   ingress.yaml migration-job.yaml
-overlays/production/   # pin images (by digest) for prod
+overlays/production/kustomization.yaml   # single place that pins the image tags
+scripts/update-images.sh                  # bump those pins from CI image refs
 ```
 
 ## Prerequisites
@@ -29,39 +30,60 @@ overlays/production/   # pin images (by digest) for prod
   ```bash
   kubectl apply -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/releases/cnpg-1.24.0.yaml
   ```
-- Both images built and pushed to ghcr.io (see below).
+- Both images built and pushed to Harbor by CI (see below).
 
-## 1. Build & push images
+## 1. Images
 
-**web** (from `../hashbin-web`): the repo has a `Dockerfile` (nginx serving the committed
-`dist/`):
+Images live in the org **Harbor** (`harbor.tools.nyx.kb.dk/blekinge/`), produced by each
+repo's CI:
+
+| image | Harbor repo | built by |
+|---|---|
+| api | `hashbin-quarkus` | native Quarkus build (Jenkinsfile) |
+| web | `hashbin-web` | `Dockerfile.ci` (Node builds `src/`, nginx serves it) |
+
+CI tags each build `<version>-<branch>-sha.<git-sha>-build.<n>`. Copy those refs straight
+into `scripts/update-images.sh` (see **Update images** below) — that is the only step that
+changes a running deployment.
+
+<details>
+<summary>Manual / offline build (not the normal path)</summary>
+
+**web** (from `../hashbin-web`):
 ```bash
-docker build -t ghcr.io/blekinge/hashbin-web:1.0.0 ../hashbin-web
-docker push ghcr.io/blekinge/hashbin-web:1.0.0
+docker build -t harbor.tools.nyx.kb.dk/blekinge/hashbin-web:<tag> ../hashbin-web
+docker push harbor.tools.nyx.kb.dk/blekinge/hashbin-web:<tag>
 ```
-> CI (`hashbin-web/ci/Jenkinsfile`) builds the same image from **source** via `Dockerfile.ci`
-> (Node compiles `src/`, nginx serves it) and pushes to the org **Harbor** — the `ghcr.io` build
-> above is the manual / OSS path.
 
-**api** (from `../hashbin-quarkus`): a **native** image. The backend now has
-`quarkus-container-image-docker` wired in and the image path (`ghcr.io/blekinge/hashbin-quarkus`)
-set in its `application.properties`, so the build is just:
+**api** (from `../hashbin-quarkus`) — a **native** image (JDK 21 required); the backend
+has `quarkus-container-image-docker` wired in:
 ```bash
 cd ../hashbin-quarkus
-export JAVA_HOME=<a JDK 21>   # JDK 21 required
+export JAVA_HOME=<a JDK 21>
 mvn -P '!web' -Dnative -DskipTests \
     -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true \
-    -Dquarkus.container-image.tag=1.0.0 package
+    -Dquarkus.container-image.group=blekinge \
+    -Dquarkus.container-image.registry=harbor.tools.nyx.kb.dk \
+    -Dquarkus.container-image.tag=<tag> package
 ```
-> The native binary is compiled in a Mandrel container (no local GraalVM needed). On
-> rootless Podman add `-Dquarkus.docker.executable-name=podman
-> -Dquarkus.native.container-runtime=podman`. Full notes in the backend README
-> "Container image" section. Not wired into CI (native builds are heavy) — run it by hand
-> or add a workflow later.
+> On rootless Podman add `-Dquarkus.docker.executable-name=podman
+> -Dquarkus.native.container-runtime=podman`.
+</details>
 
 ## 2. Secrets
 
-The app needs a **shared** HMAC + JWT secret across all api pods (so signatures and JWTs
+**Harbor pull credentials** — the api/web/migrate pods pull from private Harbor, so the
+`hashbin` namespace needs a `docker-registry` Secret named `harbor-cred` (referenced by
+`imagePullSecrets` in each workload). Skip it only if your cluster nodes already
+authenticate to Harbor:
+```bash
+kubectl -n hashbin create secret docker-registry harbor-cred \
+  --docker-server=harbor.tools.nyx.kb.dk \
+  --docker-username='<robot-account>' \
+  --docker-password='<token>'
+```
+
+**App secrets** — the app needs a **shared** HMAC + JWT secret across all api pods (so signatures and JWTs
 verify on any replica). Create it out-of-band (do **not** commit it). Use SOPS /
 sealed-secrets / External Secrets in a real setup:
 ```bash
@@ -90,6 +112,24 @@ re-apply (idempotent — only the deleted Job is recreated):
 kubectl -n hashbin delete job hashbin-migrate --ignore-not-found
 kubectl apply -k overlays/production
 ```
+
+## 4. Update images
+
+The two pinned tags in `overlays/production/kustomization.yaml` are the **only** thing
+that changes a running deployment. To roll out new CI builds, paste the image refs into
+the helper (it just runs `kustomize edit set image`):
+
+```bash
+scripts/update-images.sh \
+  harbor.tools.nyx.kb.dk/blekinge/hashbin-quarkus:<new-tag> \
+  harbor.tools.nyx.kb.dk/blekinge/hashbin-web:<new-tag>
+
+git diff                 # two `newTag:` lines should change
+git commit -am "bump hashbin images" && git push
+```
+
+ArgoCD auto-syncs `master`, so the push is the deploy. To pin manually instead, just edit
+the two `newTag:` lines. Verify what will ship with `kustomize build overlays/production`.
 
 ## Scaling model
 

@@ -1,8 +1,9 @@
 # ArgoCD Application for hashbin (api + web + CloudNativePG).
 #
 # ArgoCD renders the production Kustomize overlay from THIS repo. The overlay already
-# sets `namespace: hashbin` and the ghcr.io image tags, so nothing else is needed here.
-# The repo is public, so no source credentials are required.
+# sets `namespace: hashbin` and pins the Harbor image tags, so nothing else is needed
+# here. Pulling from private Harbor needs the `harbor-cred` Secret in the `hashbin`
+# namespace (see the repo README, "2. Secrets").
 #
 # Apply once into your ArgoCD install (ArgoCD itself is not managed by this file):
 #   kubectl apply -n argocd -f argocd/application.yaml

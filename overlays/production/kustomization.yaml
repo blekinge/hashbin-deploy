@@ -4,15 +4,15 @@ kind: Kustomization
 namespace: hashbin
 
 resources:
-  - ../../base
+- ../../base
 
-# The base already renames the images to their ghcr paths, so override by that final
-# name (Kustomize matches the name as written in the base output). Pin by `digest:` in
-# real production for immutability.
+# ---------------------------------------------------------------------------
+# PINNED IMAGES — edit here (or run scripts/update-images.sh) to roll out a build.
+# These are the only two lines that change when CI publishes a new image. ArgoCD
+# auto-syncs this overlay, so `git commit && git push` is the whole deploy.
+# ---------------------------------------------------------------------------
 images:
-  - name: ghcr.io/blekinge/hashbin-quarkus
-    newTag: "1.0.0"
-    # digest: sha256:<api-image-digest>
-  - name: ghcr.io/blekinge/hashbin-web
-    newTag: "1.0.0"
-    # digest: sha256:<web-image-digest>
+- name: harbor.tools.nyx.kb.dk/blekinge/hashbin-quarkus
+  newTag: 1.0.0-SNAPSHOT-main-sha.05cb6c7306d71b084072c74b66e36db910dd5c3a-build.6
+- name: harbor.tools.nyx.kb.dk/blekinge/hashbin-web
+  newTag: 0.1.0-master-sha.f8a14c9060188f32d19d2806e0b623f8674261c4-build.6

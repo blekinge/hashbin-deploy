@@ -21,6 +21,9 @@ spec:
         app: hashbin-migrate
     spec:
       restartPolicy: OnFailure
+      # Harbor is a private registry — see README "2. Secrets" to create this Secret.
+      imagePullSecrets:
+        - name: harbor-cred
       securityContext:
         runAsNonRoot: true
         seccompProfile:
