@@ -1,0 +1,12 @@
+# Keep at least one API pod up during node drains / rollouts.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: hashbin-api
+  labels:
+    app: hashbin-api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: hashbin-api

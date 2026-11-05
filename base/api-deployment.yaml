@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hashbin-api
+  labels:
+    app: hashbin-api
+spec:
+  # No replicas here: the HPA owns scaling. To pin manually, delete hpa.yaml and set this.
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: hashbin-api
+  template:
+    metadata:
+      labels:
+        app: hashbin-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: api
+          image: hashbin-api
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: QUARKUS_PROFILE
+              value: prod
+            # Migrations run in a one-shot Job, not per pod.
+            - name: QUARKUS_FLYWAY_MIGRATE_AT_START
+              value: "false"
+            - name: QUARKUS_DATASOURCE_JDBC_URL
+              value: jdbc:postgresql://hashbin-db-rw:5432/hashbin
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: hashbin-db-app
+                  key: username
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hashbin-db-app
+                  key: password
+            - name: HASHBIN_HMAC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: hashbin-secrets
+                  key: hmac-secret
+            - name: HASHBIN_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: hashbin-secrets
+                  key: jwt-secret
+            - name: HASHBIN_JWT_ISSUER
+              value: hashbin
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 96Mi
+            limits:
+              cpu: "1"
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: hashbin
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: hashbin
+    includeSelectors: false
+
+resources:
+  - namespace.yaml
+  - cnpg-cluster.yaml
+  - api-deployment.yaml
+  - api-service.yaml
+  - web-deployment.yaml
+  - web-service.yaml
+  - ingress.yaml
+  - migration-job.yaml
+  - hpa.yaml
+  - pdb.yaml
+
+# Image names used by the resources; point these at your registry. Pin by digest in
+# the production overlay. The api image must be built for the native profile (see the
+# backend repo README); the web image is produced by hashbin-web/Dockerfile.
+images:
+  - name: hashbin-api
+    newName: ghcr.io/blekinge/hashbin-quarkus
+    newTag: latest
+  - name: hashbin-web
+    newName: ghcr.io/blekinge/hashbin-web
+    newTag: latest

@@ -1,0 +1,41 @@
+# Single origin: /api and /q (API, health, Swagger/OpenAPI) -> api service; everything
+# else -> the static web service. So config.js can stay at apiBase "/api" and CORS is
+# unnecessary. Assumes an Ingress controller (class "nginx") + cert-manager for TLS.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hashbin
+  annotations:
+    # cert-manager: uncomment and point at your ClusterIssuer.
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  # tls:
+  #   - hosts: [hashbin.net]
+  #     secretName: hashbin-tls
+  rules:
+    - host: hashbin.net
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: hashbin-api
+                port:
+                  number: 8080
+          - path: /q
+            pathType: Prefix
+            backend:
+              service:
+                name: hashbin-api
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hashbin-web
+                port:
+                  number: 8080

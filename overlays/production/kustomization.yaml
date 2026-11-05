@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: hashbin
+
+resources:
+  - ../../base
+
+# The base already renames the images to their ghcr paths, so override by that final
+# name (Kustomize matches the name as written in the base output). Pin by `digest:` in
+# real production for immutability.
+images:
+  - name: ghcr.io/blekinge/hashbin-quarkus
+    newTag: "1.0.0"
+    # digest: sha256:<api-image-digest>
+  - name: ghcr.io/blekinge/hashbin-web
+    newTag: "1.0.0"
+    # digest: sha256:<web-image-digest>

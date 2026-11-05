@@ -1,0 +1,22 @@
+# Scales the stateless API on CPU. Add a real request-rate signal later via the
+# Prometheus adapter once quarkus-micrometer is added to the backend.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hashbin-api
+  labels:
+    app: hashbin-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hashbin-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

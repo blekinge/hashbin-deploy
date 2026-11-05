@@ -1,0 +1,54 @@
+# One-shot Flyway migration using the API image (schema versioning stays in the backend
+# jar). Run it before/around a rollout, e.g.:  kubectl kustomize base | kubectl apply -f -
+# then:  kubectl -n hashbin delete job hashbin-migrate && kubectl apply -f <(this job).
+#
+# Relies on Quarkus exiting after startup when the HTTP server is disabled (nothing keeps
+# the process alive) — VERIFY this on your cluster; if it does not exit, see the README
+# "Migrations" fallback (a `command-mode` migrate entrypoint or the Flyway CLI).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hashbin-migrate
+  labels:
+    app: hashbin-migrate
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: hashbin-migrate
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: hashbin-api
+          env:
+            - name: QUARKUS_PROFILE
+              value: prod
+            - name: QUARKUS_HTTP_ENABLED
+              value: "false"
+            - name: QUARKUS_FLYWAY_MIGRATE_AT_START
+              value: "true"
+            - name: QUARKUS_DATASOURCE_JDBC_URL
+              value: jdbc:postgresql://hashbin-db-rw:5432/hashbin
+            - name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: hashbin-db-app
+                  key: username
+            - name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hashbin-db-app
+                  key: password
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

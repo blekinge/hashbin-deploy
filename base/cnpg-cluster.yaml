@@ -1,0 +1,28 @@
+# CloudNativePG — HA PostgreSQL (1 primary + 1 replica). Requires the CNPG operator
+# installed in the cluster (see ../README.md). CNPG auto-creates the `hashbin-db-app`
+# Secret (keys: username, password) and the read-write / read-only Services:
+#   hashbin-db-rw  (primary — writes)   hashbin-db-ro (replicas — read scaling)
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: hashbin-db
+spec:
+  instances: 2
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  bootstrap:
+    initdb:
+      database: hashbin
+      owner: hashbin
+      # CNPG generates the `hashbin-db-app` secret with a strong password.
+  storage:
+    size: 10Gi
+    # storageClassName omitted on purpose -> uses the cluster default. Override per
+    # environment in the overlay if you have a specific StorageClass.
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+  # Backups (barman/S3) and a scheduled backup are intentionally NOT configured here —
+  # see ../README.md "Backups" for the follow-up once you pick a bucket.
