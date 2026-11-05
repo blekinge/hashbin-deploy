@@ -39,6 +39,9 @@ overlays/production/   # pin images (by digest) for prod
 docker build -t ghcr.io/blekinge/hashbin-web:1.0.0 ../hashbin-web
 docker push ghcr.io/blekinge/hashbin-web:1.0.0
 ```
+> CI (`hashbin-web/ci/Jenkinsfile`) builds the same image from **source** via `Dockerfile.ci`
+> (Node compiles `src/`, nginx serves it) and pushes to the org **Harbor** — the `ghcr.io` build
+> above is the manual / OSS path.
 
 **api** (from `../hashbin-quarkus`): a **native** image. The backend now has
 `quarkus-container-image-docker` wired in and the image path (`ghcr.io/blekinge/hashbin-quarkus`)
