@@ -31,6 +31,7 @@ spec:
       containers:
         - name: migrate
           image: hashbin-api
+          imagePullPolicy: Always
           env:
             - name: QUARKUS_PROFILE
               value: prod

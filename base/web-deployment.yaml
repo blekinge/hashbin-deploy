@@ -29,6 +29,7 @@ spec:
         - name: web
           # nginx-unprivileged listens on 8080 as a non-root user and serves dist/.
           image: hashbin-web
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080

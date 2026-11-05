@@ -18,6 +18,6 @@ resources:
 # ---------------------------------------------------------------------------
 images:
 - name: harbor.tools.nyx.kb.dk/blekinge/hashbin-quarkus
-  newTag: 1.0.0-SNAPSHOT-main-sha.05cb6c7306d71b084072c74b66e36db910dd5c3a-build.6
+  newTag: latest
 - name: harbor.tools.nyx.kb.dk/blekinge/hashbin-web
-  newTag: 0.1.0-master-sha.f8a14c9060188f32d19d2806e0b623f8674261c4-build.6
+  newTag: latest
