@@ -23,7 +23,7 @@ scripts/update-images.sh                  # bump those pins from CI image refs
 ## Prerequisites
 
 - A Kubernetes cluster + `kubectl`.
-- **Ingress-NGINX** controller (`ingressClassName: nginx`).
+- A **Cilium** Ingress controller (`ingressClassName: cilium`).
 - **cert-manager** + a `ClusterIssuer` for TLS (the TLS block in `base/ingress.yaml` is
   commented until you set this up).
 - **CloudNativePG operator** installed (cluster-wide):

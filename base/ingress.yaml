@@ -1,6 +1,6 @@
 # Single origin: /api and /q (API, health, Swagger/OpenAPI) -> api service; everything
 # else -> the static web service. So config.js can stay at apiBase "/api" and CORS is
-# unnecessary. Assumes an Ingress controller (class "nginx") + cert-manager for TLS.
+# unnecessary. Assumes an Ingress controller (class "cilium") + cert-manager for TLS.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -8,9 +8,10 @@ metadata:
   annotations:
     # cert-manager: uncomment and point at your ClusterIssuer.
     # cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Cilium forces HTTP->HTTPS once a `tls:` block is present for the host.
+    cilium.io/https-redirect: "true"
 spec:
-  ingressClassName: nginx
+  ingressClassName: cilium
   # tls:
   #   - hosts: [hashbin.net]
   #     secretName: hashbin-tls
