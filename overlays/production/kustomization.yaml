@@ -17,7 +17,7 @@ resources:
 # auto-syncs this overlay, so `git commit && git push` is the whole deploy.
 # ---------------------------------------------------------------------------
 images:
-- name: harbor.tools.nyx.kb.dk/blekinge/hashbin-quarkus
+- name: harbor.tools.nyx.kb.dk/blekinge/hashbin-backend
   newTag: latest
 - name: harbor.tools.nyx.kb.dk/blekinge/hashbin-web
   newTag: latest

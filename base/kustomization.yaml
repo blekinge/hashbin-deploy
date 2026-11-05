@@ -25,11 +25,11 @@ resources:
 # this maps them to the org Harbor registry. The production overlay is the single place
 # that pins the real tags (see overlays/production/kustomization.yaml). `newTag` here is
 # only a fallback for `kustomize build base` and is never what gets deployed.
-#   api = native Quarkus image (built by hashbin-quarkus CI)
+#   api = native Quarkus image (built by hashbin-backend CI)
 #   web = nginx image (built by hashbin-web CI)
 images:
   - name: hashbin-api
-    newName: harbor.tools.nyx.kb.dk/blekinge/hashbin-quarkus
+    newName: harbor.tools.nyx.kb.dk/blekinge/hashbin-backend
     newTag: latest
   - name: hashbin-web
     newName: harbor.tools.nyx.kb.dk/blekinge/hashbin-web

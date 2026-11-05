@@ -43,7 +43,7 @@ repo's CI:
 
 | image | Harbor repo | built by |
 |---|---|
-| api | `hashbin-quarkus` | native Quarkus build (Jenkinsfile) |
+| api | `hashbin-backend` | native Quarkus build (Jenkinsfile) |
 | web | `hashbin-web` | `Dockerfile.ci` (Node builds `src/`, nginx serves it) |
 
 CI tags each build `<version>-<branch>-sha.<git-sha>-build.<n>`. Copy those refs straight
@@ -61,12 +61,12 @@ DOCKER_BUILDKIT=1 docker build --target final \
 docker push harbor.tools.nyx.kb.dk/blekinge/hashbin-web:<tag>
 ```
 
-**api** (from `../hashbin-quarkus`) — a **native** image (JDK 21 required); the backend
+**api** (from `../hashbin-backend`) — a **native** image (JDK 21 required); the backend
 has `quarkus-container-image-docker` wired in:
 ```bash
-cd ../hashbin-quarkus
+cd ../hashbin-backend
 export JAVA_HOME=<a JDK 21>
-mvn -P '!web' -Dnative -DskipTests \
+mvn -pl hashbin-quarkus -am -P '!web' -Dnative -DskipTests \
     -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true \
     -Dquarkus.container-image.group=blekinge \
     -Dquarkus.container-image.registry=harbor.tools.nyx.kb.dk \
@@ -207,7 +207,7 @@ the helper (it just runs `kustomize edit set image`):
 
 ```bash
 scripts/update-images.sh \
-  harbor.tools.nyx.kb.dk/blekinge/hashbin-quarkus:<new-tag> \
+  harbor.tools.nyx.kb.dk/blekinge/hashbin-backend:<new-tag> \
   harbor.tools.nyx.kb.dk/blekinge/hashbin-web:<new-tag>
 
 git diff                 # two `newTag:` lines should change

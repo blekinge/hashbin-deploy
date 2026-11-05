@@ -7,7 +7,7 @@
 #
 # Example (paste the refs from your CI / `docker pull` output):
 #   scripts/update-images.sh \
-#     harbor.tools.nyx.kb.dk/blekinge/hashbin-quarkus:1.0.0-SNAPSHOT-main-sha.05cb...-build.6 \
+#     harbor.tools.nyx.kb.dk/blekinge/hashbin-backend:1.0.0-SNAPSHOT-main-sha.05cb...-build.6 \
 #     harbor.tools.nyx.kb.dk/blekinge/hashbin-web:0.1.0-master-sha.f8a1...-build.6
 #
 # Each ref is split into <name>:<tag>; the matching `images:` entry in the overlay is
