@@ -40,18 +40,21 @@ docker build -t ghcr.io/blekinge/hashbin-web:1.0.0 ../hashbin-web
 docker push ghcr.io/blekinge/hashbin-web:1.0.0
 ```
 
-**api** (from `../hashbin-quarkus`): a **native** image. The backend currently has a
-`native` Maven profile but no container-image builder configured yet — add
-`quarkus-container-image-docker` (or `-jib`) and build:
+**api** (from `../hashbin-quarkus`): a **native** image. The backend now has
+`quarkus-container-image-docker` wired in and the image path (`ghcr.io/blekinge/hashbin-quarkus`)
+set in its `application.properties`, so the build is just:
 ```bash
 cd ../hashbin-quarkus
-mvn -Dnative -Dquarkus.native.container-build=true \
+export JAVA_HOME=~/.sdkman/candidates/java/21.0.9-tem   # JDK 21 required
+mvn -P '!web' -Dnative -DskipTests \
     -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true \
-    -Dquarkus.container-image.image=ghcr.io/blekinge/hashbin-quarkus:1.0.0 \
-    -DskipTests package
+    -Dquarkus.container-image.tag=1.0.0 package
 ```
-> I can wire the container-image config into the backend pom + add a `native` build
-> workflow as a follow-up if you want this fully automated.
+> The native binary is compiled in a Mandrel container (no local GraalVM needed). On
+> rootless Podman add `-Dquarkus.docker.executable-name=podman
+> -Dquarkus.native.container-runtime=podman`. Full notes in the backend README
+> "Container image" section. Not wired into CI (native builds are heavy) — run it by hand
+> or add a workflow later.
 
 ## 2. Secrets
 
