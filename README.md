@@ -248,3 +248,8 @@ the two `newTag:` lines. Verify what will ship with `kustomize build overlays/pr
   Prometheus-based HPA metric.
 - **Edge rate limiting**: the app's rate limiter is per-pod (N× lenient at N replicas).
   Rate-limit at the Ingress or move the limiter to Redis.
+
+## License
+
+Released under the **Apache License, Version 2.0** — see [LICENSE](LICENSE).
+Copyright 2025 Hashbin Contributors.
