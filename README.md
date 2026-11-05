@@ -101,19 +101,34 @@ kubectl create secret docker-registry harbor-cred \
 git commit -am "rotate harbor-cred" && git push
 ```
 
-**App secrets** — the app needs a **shared** HMAC + JWT secret across all api pods (so signatures and JWTs
-verify on any replica). Create it out-of-band (do **not** commit it). Use SOPS /
-sealed-secrets / External Secrets in a real setup:
+**App secrets** — the app needs a **shared** HMAC + JWT secret across all api pods (so
+signatures and JWTs verify on any replica). These are **already committed** as a SealedSecret
+(random values generated with `openssl rand -hex 32`, then sealed — no plaintext in git):
+
+```
+overlays/production/sealed-secret-hashbin-secrets.yaml
+```
+
+The sealed-secrets controller unpacks it into the `hashbin-secrets` Secret the api
+Deployment references. To **rotate**, re-seal with freshly generated values (plaintext only
+ever lives in the shell pipe, never on disk):
+
 ```bash
-kubectl -n hashbin create secret generic hashbin-secrets \
+CERT=/home/asga/git/stash/CT/gitops/tools.sealedsecret.cert
+kubectl create secret generic hashbin-secrets -n hashbin \
   --from-literal=hmac-secret="$(openssl rand -hex 32)" \
-  --from-literal=jwt-secret="$(openssl rand -hex 32)"
+  --from-literal=jwt-secret="$(openssl rand -hex 32)" \
+  --dry-run=client -o yaml \
+| kubeseal --cert "$CERT" --format yaml \
+> overlays/production/sealed-secret-hashbin-secrets.yaml
+git commit -am "rotate app secrets" && git push
 ```
 The **DB** credentials are not yours to manage here — CloudNativePG auto-creates the
 `hashbin-db-app` Secret (`username`/`password`), which the api Deployment consumes.
 
-> If you are migrating data from an existing Supabase Postgres, set `hmac-secret` to the
-> **original HMAC secret** so previously-issued `server_signature`s keep verifying.
+> If you are migrating data from an existing Supabase Postgres, re-seal `hashbin-secrets`
+> with the **original HMAC secret** (put that literal value in the rotate command) so
+> previously-issued `server_signature`s keep verifying.
 
 ## 3. Deploy
 
