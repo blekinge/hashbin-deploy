@@ -134,6 +134,32 @@ The **DB** credentials are not yours to manage here — CloudNativePG auto-creat
 > with the **original HMAC secret** (put that literal value in the rotate command) so
 > previously-issued `server_signature`s keep verifying.
 
+## 2b. DNS (one manual record — no external-dns)
+
+`hashbin.net` is hosted at **Simply.com**, which external-dns has no provider for (and the
+cluster's external-dns only writes to the org's own BIND for `*.nyx.kb.dk`). So publish the
+apex A record **by hand, once** at Simply:
+
+```
+hashbin.net.   A   <Cilium load-balancer EXTERNAL-IP>
+```
+
+Get the IP (Cilium's ingress data-plane Service is `cilium-envoy`):
+
+```bash
+kubectl -n kube-system get svc cilium-envoy \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}{"\n"}'
+```
+
+Notes:
+- The **TLS cert does not need this record** — cert-manager solves DNS-01 by writing a
+  temporary `_acme-challenge.hashbin.net` TXT via the Simply webhook, using API creds (not
+  the public zone). This A record only routes *visitors* to the cluster.
+- If `cilium-envoy` has no `EXTERNAL-IP`, ask the platform team for a static MetalLB/BGP
+  address; it should be stable or visitors (and certs' renewal path) break on change.
+- Optional: add `www.hashbin.net` → same IP and list it in the Ingress `rules`/`tls`.
+- To later automate this away, see **Follow-ups → DNS automation**.
+
 ## 3. Deploy
 
 ```bash
@@ -179,6 +205,16 @@ the two `newTag:` lines. Verify what will ship with `kustomize build overlays/pr
 
 ## Follow-ups (deliberately not done here)
 
+- **DNS automation (external-dns)** — right now the `hashbin.net` A record is a manual
+  entry at Simply (§2b), because external-dns has no Simply provider and the cluster's
+  external-dns only manages `tools.nyx.kb.dk` (rfc2136 → org BIND). To automate, either:
+  - serve as `hashbin.tools.nyx.kb.dk` → existing external-dns + the existing
+    `letsencrypt-rfc2136-nyx` issuer handle A-record *and* cert automatically (drops the
+    Simply issuer/webhook entirely); or
+  - **delegate** `hashbin.net` (NS) to the org BIND, then add the domain to external-dns
+    `domainFilters` + the rfc2136 issuer and retire the Simply webhook.
+  Config lives in the infra repo at `apps/external-dns/tools/` and
+  `infrastructure/cert-manager/tools/`, not here.
 - **Migrations exit behavior**: the Job uses `QUARKUS_HTTP_ENABLED=false` and expects
   Quarkus to exit after Flyway runs. **Verify on your cluster.** If it lingers, add a
   Quarkus command-mode `migrate` entrypoint (I can add it) or switch the Job to the
