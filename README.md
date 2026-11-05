@@ -15,7 +15,7 @@ base/
   namespace.yaml cnpg-cluster.yaml
   api-deployment.yaml api-service.yaml hpa.yaml pdb.yaml
   web-deployment.yaml web-service.yaml
-  ingress.yaml migration-job.yaml
+  ingress.yaml issuer.yaml migration-job.yaml
 overlays/production/kustomization.yaml   # single place that pins the image tags
 scripts/update-images.sh                  # bump those pins from CI image refs
 ```
@@ -24,10 +24,10 @@ scripts/update-images.sh                  # bump those pins from CI image refs
 
 - A Kubernetes cluster + `kubectl`.
 - A **Cilium** Ingress controller (`ingressClassName: cilium`).
-- **cert-manager** with the Simply.com DNS-01 webhook, and the cluster-scoped
-  `ClusterIssuer` **`letsencrypt-simply-hashbin`** for `hashbin.net`. That issuer (and its
-  `simply-credentials-hashbin` Secret) live in the cluster **infra** repo, not here; this
-  app only references it from `base/ingress.yaml` (TLS is enabled).
+- **cert-manager** with the **Simply.com DNS-01 webhook** installed (cluster infra: the
+  runnerm `simply-dns-webhook`). The `Issuer` itself (`letsencrypt-simply-hashbin`) and its
+  credentials are defined **in this repo** — `base/issuer.yaml` + a SealedSecret (see
+  §2). TLS is enabled in `base/ingress.yaml`.
 - **sealed-secrets controller** installed (cluster-wide) — the `harbor-cred` and
   `hashbin-secrets` SealedSecrets in `overlays/production/` are unpacked by it.
 - **CloudNativePG operator** installed (cluster-wide):
@@ -127,6 +127,28 @@ kubectl create secret generic hashbin-secrets -n hashbin \
 > overlays/production/sealed-secret-hashbin-secrets.yaml
 git commit -am "rotate app secrets" && git push
 ```
+
+**TLS issuer credentials** — the namespaced `Issuer` (`base/issuer.yaml`) solves DNS-01 on
+Simply.com and reads the `simply-credentials-hashbin` Secret from this namespace. That Secret
+is committed as a SealedSecret (`overlays/production/sealed-secret-simply-credentials.yaml`,
+keys `account-name` + `api-key`). To rotate the Simply API token, re-seal:
+
+```bash
+CERT=/home/asga/git/stash/CT/gitops/tools.sealedsecret.cert
+kubectl create secret generic simply-credentials-hashbin -n hashbin \
+  --from-literal=account-name='<account>' \
+  --from-literal=api-key='<new-token>' \
+  --dry-run=client -o yaml \
+| kubeseal --cert "$CERT" --format yaml \
+> overlays/production/sealed-secret-simply-credentials.yaml
+git commit -am "rotate simply credentials" && git push
+```
+
+> **Staging first:** `base/issuer.yaml` uses the Let's Encrypt **staging** server. Once
+> `hashbin-tls` issues cleanly, switch `server:` to `https://acme-v02.api.letsencrypt.org/directory`,
+> re-seal nothing (just commit + ArgoCD sync), then `kubectl -n hashbin delete certificate hashbin-tls`
+> to reissue a publicly-trusted cert.
+
 The **DB** credentials are not yours to manage here — CloudNativePG auto-creates the
 `hashbin-db-app` Secret (`username`/`password`), which the api Deployment consumes.
 
@@ -209,12 +231,12 @@ the two `newTag:` lines. Verify what will ship with `kustomize build overlays/pr
   entry at Simply (§2b), because external-dns has no Simply provider and the cluster's
   external-dns only manages `tools.nyx.kb.dk` (rfc2136 → org BIND). To automate, either:
   - serve as `hashbin.tools.nyx.kb.dk` → existing external-dns + the existing
-    `letsencrypt-rfc2136-nyx` issuer handle A-record *and* cert automatically (drops the
-    Simply issuer/webhook entirely); or
+    `letsencrypt-rfc2136-nyx` issuer handle A-record *and* cert automatically (then delete
+    `base/issuer.yaml` + `sealed-secret-simply-credentials.yaml` and repoint the Ingress); or
   - **delegate** `hashbin.net` (NS) to the org BIND, then add the domain to external-dns
-    `domainFilters` + the rfc2136 issuer and retire the Simply webhook.
-  Config lives in the infra repo at `apps/external-dns/tools/` and
-  `infrastructure/cert-manager/tools/`, not here.
+    `domainFilters` + the rfc2136 issuer and drop the in-app Simply Issuer + webhook.
+  The external-dns + rfc2136 config lives in the infra repo at `apps/external-dns/tools/`
+  and `infrastructure/cert-manager/tools/`; the current Simply Issuer lives here (`base/issuer.yaml`).
 - **Migrations exit behavior**: the Job uses `QUARKUS_HTTP_ENABLED=false` and expects
   Quarkus to exit after Flyway runs. **Verify on your cluster.** If it lingers, add a
   Quarkus command-mode `migrate` entrypoint (I can add it) or switch the Job to the

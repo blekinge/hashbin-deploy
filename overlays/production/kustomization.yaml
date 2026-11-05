@@ -4,11 +4,12 @@ kind: Kustomization
 namespace: hashbin
 
 # SealedSecrets — unpacked by the cluster's sealed-secrets controller into the real
-# Secrets. Both keep stable names so the api Deployment's references resolve.
+# Secrets. All keep stable names so their consumers' references resolve.
 resources:
 - ../../base
-- sealed-secret-harbor-cred.yaml     # harbor-cred: imagePullSecret for private Harbor
-- sealed-secret-hashbin-secrets.yaml # hashbin-secrets: hmac-secret + jwt-secret
+- sealed-secret-harbor-cred.yaml       # harbor-cred: imagePullSecret for private Harbor
+- sealed-secret-hashbin-secrets.yaml   # hashbin-secrets: hmac-secret + jwt-secret
+- sealed-secret-simply-credentials.yaml # simply-credentials-hashbin: DNS-01 for the Issuer
 
 # ---------------------------------------------------------------------------
 # PINNED IMAGES — edit here (or run scripts/update-images.sh) to roll out a build.

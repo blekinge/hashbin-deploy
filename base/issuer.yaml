@@ -1,0 +1,30 @@
+# Namespaced cert-manager Issuer for hashbin.net (TLS via the ingress).
+# DNS-01 against Simply.com using the cluster's runnerm simply-dns-webhook. The
+# webhook reads `simply-credentials-hashbin` from THIS namespace (it resolves the
+# solver secret via the Challenge's ResourceNamespace + a cluster-wide get-secrets
+# ClusterRole), so the credentials SealedSecret lives in `hashbin` (see overlay).
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: letsencrypt-simply-hashbin
+  labels:
+    app: hashbin-issuer
+spec:
+  acme:
+    email: asger@askov.net
+    # STAGING for the first issuance (safe rate limits). Once a cert issues cleanly,
+    # switch to https://acme-v02.api.letsencrypt.org/directory and reissue for a
+    # publicly-trusted cert (staging certs are not trusted by browsers).
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-simply-hashbin-private-key
+    solvers:
+      - selector:
+          dnsZones:
+            - hashbin.net
+        dns01:
+          webhook:
+            groupName: com.github.runnerm.cert-manager-simply-webhook
+            solverName: simply-dns-solver
+            config:
+              secretName: simply-credentials-hashbin

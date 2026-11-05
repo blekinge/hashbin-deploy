@@ -16,6 +16,7 @@ resources:
   - web-deployment.yaml
   - web-service.yaml
   - ingress.yaml
+  - issuer.yaml
   - migration-job.yaml
   - hpa.yaml
   - pdb.yaml

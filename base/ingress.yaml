@@ -1,13 +1,13 @@
 # Single origin: /api and /q (API, health, Swagger/OpenAPI) -> api service; everything
 # else -> the static web service. So config.js can stay at apiBase "/api" and CORS is
-# unnecessary. TLS via cert-manager + Cilium: the ClusterIssuer "letsencrypt-simply-hashbin"
-# (defined in the cluster infra repo) solves DNS-01 against Simply.com for hashbin.net.
+# unnecessary. TLS via cert-manager + Cilium: the namespaced Issuer "letsencrypt-simply-hashbin"
+# (base/issuer.yaml, same namespace) solves DNS-01 against Simply.com for hashbin.net.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: hashbin
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-simply-hashbin
+    cert-manager.io/issuer: letsencrypt-simply-hashbin
     # Cilium forces HTTP->HTTPS now that a `tls:` block is present for the host.
     cilium.io/https-redirect: "true"
 spec:
