@@ -1,0 +1,31 @@
+# ArgoCD Application for hashbin (api + web + CloudNativePG).
+#
+# ArgoCD renders the production Kustomize overlay from THIS repo. The overlay already
+# sets `namespace: hashbin` and the ghcr.io image tags, so nothing else is needed here.
+# The repo is public, so no source credentials are required.
+#
+# Apply once into your ArgoCD install (ArgoCD itself is not managed by this file):
+#   kubectl apply -n argocd -f argocd/application.yaml
+# or:  argocd app create -f argocd/application.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hashbin
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/blekinge/hashbin-deploy.git
+    targetRevision: master
+    path: overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hashbin
+  syncPolicy:
+    # GitOps: keep the cluster in sync with the overlay automatically. Drop this
+    # block if you prefer manual syncs from the UI/CLI.
+    automated:
+      prune: true      # remove resources deleted from git
+      selfHeal: true   # revert manual cluster edits back to git
+    syncOptions:
+      - CreateNamespace=true   # the overlay also declares the Namespace; this is a safety net
