@@ -24,8 +24,12 @@ scripts/update-images.sh                  # bump those pins from CI image refs
 
 - A Kubernetes cluster + `kubectl`.
 - A **Cilium** Ingress controller (`ingressClassName: cilium`).
-- **cert-manager** + a `ClusterIssuer` for TLS (the TLS block in `base/ingress.yaml` is
-  commented until you set this up).
+- **cert-manager** with the Simply.com DNS-01 webhook, and the cluster-scoped
+  `ClusterIssuer` **`letsencrypt-simply-hashbin`** for `hashbin.net`. That issuer (and its
+  `simply-credentials-hashbin` Secret) live in the cluster **infra** repo, not here; this
+  app only references it from `base/ingress.yaml` (TLS is enabled).
+- **sealed-secrets controller** installed (cluster-wide) — the `harbor-cred` and
+  `hashbin-secrets` SealedSecrets in `overlays/production/` are unpacked by it.
 - **CloudNativePG operator** installed (cluster-wide):
   ```bash
   kubectl apply -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/main/releases/cnpg-1.24.0.yaml
