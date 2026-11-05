@@ -74,13 +74,31 @@ mvn -P '!web' -Dnative -DskipTests \
 
 **Harbor pull credentials** — the api/web/migrate pods pull from private Harbor, so the
 `hashbin` namespace needs a `docker-registry` Secret named `harbor-cred` (referenced by
-`imagePullSecrets` in each workload). Skip it only if your cluster nodes already
-authenticate to Harbor:
+`imagePullSecrets` in each workload). This is **already committed** as a SealedSecret:
+
+```
+overlays/production/sealed-secret-harbor-cred.yaml
+```
+
+ArgoCD applies the SealedSecret and the in-cluster **sealed-secrets controller** unpacks
+it into the `harbor-cred` Secret. **Prerequisite:** the controller must be installed
+cluster-wide (`kubeseal` client + the matching controller/key pair the cluster was set up
+with).
+
+To **rotate** the Harbor token, re-seal with the org cert (the plaintext token never
+touches disk — only the encrypted file is committed):
+
 ```bash
-kubectl -n hashbin create secret docker-registry harbor-cred \
+CERT=/home/asga/git/stash/CT/gitops/tools.sealedsecret.cert   # org sealed-secrets public cert
+kubectl create secret docker-registry harbor-cred \
+  -n hashbin \
   --docker-server=harbor.tools.nyx.kb.dk \
-  --docker-username='<robot-account>' \
-  --docker-password='<token>'
+  --docker-username='robot$jenkins' \
+  --docker-password='<new-token>' \
+  --dry-run=client -o yaml \
+| kubeseal --cert "$CERT" --format yaml \
+> overlays/production/sealed-secret-harbor-cred.yaml
+git commit -am "rotate harbor-cred" && git push
 ```
 
 **App secrets** — the app needs a **shared** HMAC + JWT secret across all api pods (so signatures and JWTs

@@ -3,8 +3,10 @@ kind: Kustomization
 
 namespace: hashbin
 
+# harbor-cred: imagePullSecret for private Harbor (SealedSecret — commit-safe).
 resources:
 - ../../base
+- sealed-secret-harbor-cred.yaml
 
 # ---------------------------------------------------------------------------
 # PINNED IMAGES — edit here (or run scripts/update-images.sh) to roll out a build.
