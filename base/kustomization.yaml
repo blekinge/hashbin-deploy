@@ -17,7 +17,7 @@ resources:
   - web-service.yaml
   - ingress.yaml
   - issuer.yaml
-  - migration-job.yaml
+#  - migration-job.yaml # migrate job does not terminate....
   - hpa.yaml
   - pdb.yaml
 
